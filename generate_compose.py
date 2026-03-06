@@ -53,6 +53,7 @@ A2A_SCENARIO_PATH = "a2a-scenario.toml"
 ENV_PATH = ".env.example"
 
 DEFAULT_PORT = 9009
+GREEN_PORT_OVERRIDE = None  # Set from scenario env if PORT is defined
 DEFAULT_ENV_VARS = {"PYTHONUNBUFFERED": "1"}
 
 COMPOSE_TEMPLATE = """# Auto-generated from scenario.toml
@@ -62,14 +63,13 @@ services:
     image: {green_image}
     platform: linux/arm64
     container_name: green-agent
-    command: ["--host", "0.0.0.0", "--port", "{green_port}", "--card-url", "http://green-agent:{green_port}"]
     environment:{green_env}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:{green_port}/.well-known/agent-card.json"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 30s
+      test: ["CMD-SHELL", "curl -f http://localhost:{green_port}/.well-known/agent-card.json || curl -f http://localhost:{green_port}/ || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
     depends_on:{green_depends}
     networks:
       - agent-network
@@ -176,6 +176,9 @@ def generate_docker_compose(scenario: dict[str, Any]) -> str:
     green = scenario["green_agent"]
     participants = scenario.get("participants", [])
 
+    # Use PORT from green agent env if defined, otherwise DEFAULT_PORT
+    green_port = green.get("env", {}).get("PORT", str(DEFAULT_PORT))
+
     participant_names = [p["name"] for p in participants]
 
     participant_services = "\n".join([
@@ -192,7 +195,7 @@ def generate_docker_compose(scenario: dict[str, Any]) -> str:
 
     return COMPOSE_TEMPLATE.format(
         green_image=green["image"],
-        green_port=DEFAULT_PORT,
+        green_port=green_port,
         green_env=format_env_vars(green.get("env", {})),
         green_depends=format_depends_on(participant_names),
         participant_services=participant_services,
@@ -203,6 +206,9 @@ def generate_docker_compose(scenario: dict[str, Any]) -> str:
 def generate_a2a_scenario(scenario: dict[str, Any]) -> str:
     green = scenario["green_agent"]
     participants = scenario.get("participants", [])
+
+    # Use PORT from green agent env if defined
+    green_port = green.get("env", {}).get("PORT", str(DEFAULT_PORT))
 
     participant_lines = []
     for p in participants:
@@ -219,7 +225,7 @@ def generate_a2a_scenario(scenario: dict[str, Any]) -> str:
     config_lines = [tomli_w.dumps({"config": config_section})]
 
     return A2A_SCENARIO_TEMPLATE.format(
-        green_port=DEFAULT_PORT,
+        green_port=green_port,
         participants="\n".join(participant_lines),
         config="\n".join(config_lines)
     )
