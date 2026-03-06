@@ -4,7 +4,7 @@
 
 [green_agent]
 image = "docker.io/mauttaram/cybersecurity-evaluator:latest"
-env = { ENABLE_LLM = "true", PORT = "9010" }
+env = { ENABLE_LLM = "true", PORT = "9010", OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}" }
 
 [[participants]]
 agentbeats_id = "ironshell-ui/ironshell"
