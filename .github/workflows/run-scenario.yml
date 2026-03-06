@@ -75,7 +75,19 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Run assessment
-        run: docker compose up --timestamps --no-color --exit-code-from agentbeats-client --abort-on-container-exit
+        run: |
+          for attempt in 1 2 3; do
+            echo "=== Attempt $attempt/3 ==="
+            if docker compose up --timestamps --no-color --exit-code-from agentbeats-client --abort-on-container-exit; then
+              echo "Assessment succeeded on attempt $attempt"
+              exit 0
+            fi
+            echo "Attempt $attempt failed, cleaning up..."
+            docker compose down -v || true
+            sleep 10
+          done
+          echo "All 3 attempts failed"
+          exit 1
         timeout-minutes: 45
 
       - name: Generate submission metadata
