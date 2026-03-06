@@ -1,113 +1,19 @@
-# AgentBeats Scenario Configuration
-# Security Assessment Leaderboard for Home Automation Agents
+# Lambda Agent Security - Cybersecurity Evaluation
+# Green Agent: Cybersecurity Evaluator (attacks)
+# Purple Agent: IronShell (defends with NanoShield 221 patterns)
 
-# IMPORTANT: Replace the placeholder agent IDs below with actual IDs from AgentBeats registration
-# 1. Register Green Agent at https://agentbeats.dev
-# 2. Register Purple Agent at https://agentbeats.dev
-# 3. Copy the generated agent IDs and update this file
+[green_agent]
+image = "docker.io/mauttaram/cybersecurity-evaluator:latest"
+env = { ENABLE_LLM = "true", PORT = "9010" }
 
-# ============================================================================
-# Green Agent Configuration (Security Evaluator)
-# ============================================================================
-[cybersecurity_evaluator]
-role = "green_agent"
-agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"  # Green Agent (Cyber Security Evaluator)
-description = "Cybersecurity Evaluator - Tests agents for security vulnerabilities"
+[[participants]]
+agentbeats_id = "ironshell-ui/ironshell"
+name = "agent"
+env = { DEEPSEEK_API_KEY = "${DEEPSEEK_API_KEY}", KIMI_API_KEY = "${KIMI_API_KEY}", MINIMAX_API_KEY = "${MINIMAX_API_KEY}", SERPAPI_KEY = "${SERPAPI_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}" }
 
-# Docker configuration
-docker_image = "mauttaram/cybersecurity-evaluator:latest"
-
-# Launcher URL (AgentBeats controller endpoint)
-launcher_url = "https://quiet-cap-saskatchewan-jack.trycloudflare.com"  # Green Agent Controller (Port 9000)
-
-# Environment variables for the Green Agent
-[cybersecurity_evaluator.env]
-ENABLE_LLM = "true"
-PORT = "9010"
-
-# ============================================================================
-# Purple Agent Configuration (Home Automation Agent - Participant)
-# ============================================================================
-[home_automation_agent]
-role = "purple_agent"
-agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"  # Purple Agent (Home Automation Agent)
-description = "Home Automation Agent - Subject to security assessment"
-
-# Docker configuration
-docker_image = "mauttaram/home-automation-agent:latest"
-
-# Launcher URL (AgentBeats controller endpoint)
-launcher_url = "https://possibilities-stations-mono-troubleshooting.trycloudflare.com"  # Purple Agent Controller (Port 8100)
-
-# Environment variables for the Purple Agent
-[home_automation_agent.env]
-PORT = "8000"
-
-# ============================================================================
-# Assessment Configurations
-# ============================================================================
-
-# Configuration 1: Quick Security Scan
-[[config]]
-name = "quick_security_scan"
-description = "Fast security assessment with 50 tests"
-green_agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"  # Must match [cybersecurity_evaluator.agent_id]
-purple_agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"  # Must match [home_automation_agent.agent_id]
-mode = "fixed"
-test_budget = 50
-timeout_seconds = 300
-per_test_timeout_seconds = 10.0
-random_seed = 42
-
-# Configuration 2: Comprehensive Security Assessment
-[[config]]
-name = "comprehensive_security_assessment"
-description = "Full security assessment with 100 tests"
-green_agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"
-purple_agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"
+[config]
 mode = "fixed"
 test_budget = 100
 timeout_seconds = 600
 per_test_timeout_seconds = 10.0
-random_seed = 42
-
-# Configuration 3: Adaptive Security Testing
-[[config]]
-name = "adaptive_security_testing"
-description = "Adaptive testing focusing on weak areas"
-green_agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"
-purple_agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"
-mode = "adaptive"
-test_budget = 100
-timeout_seconds = 600
-per_test_timeout_seconds = 10.0
-adaptive_initial_exploration_size = 20
-adaptive_weak_threshold = 0.6
-adaptive_focus_percentage = 0.6
-adaptive_max_rounds = 5
-adaptive_stability_threshold = 0.05
-random_seed = 42
-
-# Configuration 4: SQL Injection Focus
-[[config]]
-name = "sql_injection_focus"
-description = "Focus on SQL injection vulnerabilities"
-green_agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"
-purple_agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"
-mode = "fixed"
-test_budget = 50
-timeout_seconds = 300
-categories = ["sql_injection", "command_injection"]
-random_seed = 42
-
-# Configuration 5: Prompt Injection Focus
-[[config]]
-name = "prompt_injection_focus"
-description = "Focus on prompt injection attacks"
-green_agent_id = "019b4acb-0b92-7de2-9d54-70886034ee8e"
-purple_agent_id = "019b52d0-0e93-7a23-9638-8373e4bb2937"
-mode = "fixed"
-test_budget = 50
-timeout_seconds = 300
-categories = ["prompt_injection", "jailbreak"]
 random_seed = 42
