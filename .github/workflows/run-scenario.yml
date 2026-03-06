@@ -76,7 +76,7 @@ jobs:
 
       - name: Run assessment
         run: docker compose up --timestamps --no-color --exit-code-from agentbeats-client --abort-on-container-exit
-        timeout-minutes: 30
+        timeout-minutes: 45
 
       - name: Generate submission metadata
         id: metadata

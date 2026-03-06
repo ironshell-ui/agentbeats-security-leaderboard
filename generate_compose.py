@@ -65,11 +65,11 @@ services:
     container_name: green-agent
     environment:{green_env}
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:{green_port}/.well-known/agent-card.json || curl -f http://localhost:{green_port}/ || exit 0"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -sf http://localhost:{green_port}/.well-known/agent-card.json || curl -sf http://localhost:{green_port}/ || curl -sf http://localhost:8000/ || curl -sf http://localhost:5000/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
     depends_on:{green_depends}
     networks:
       - agent-network
