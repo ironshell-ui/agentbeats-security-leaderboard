@@ -61,7 +61,7 @@ COMPOSE_TEMPLATE = """# Auto-generated from scenario.toml
 services:
   green-agent:
     image: {green_image}
-    platform: linux/arm64
+    platform: linux/amd64
     container_name: green-agent
     environment:{green_env}
     healthcheck:

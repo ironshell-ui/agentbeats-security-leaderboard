@@ -3,7 +3,7 @@
 # Purple Agent: IronShell (defends with NanoShield 221 patterns)
 
 [green_agent]
-image = "docker.io/mauttaram/cybersecurity-evaluator:latest"
+image = "cybersecurity-evaluator:local"
 env = { ENABLE_LLM = "true", PORT = "9010", OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}" }
 
 [[participants]]
