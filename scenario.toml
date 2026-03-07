@@ -1,11 +1,6 @@
-# run: HARD DEBUG Monte Carlo v4.0 — 2026-03-06T19:00
-# Lambda Agent Security - Cybersecurity Evaluation
-# Green Agent: Cybersecurity Evaluator (attacks)
-# Purple Agent: IronShell (defends with NanoShield 221 patterns)
-
 [green_agent]
 image = "docker.io/mauttaram/cybersecurity-evaluator:latest"
-env = { ENABLE_LLM = "true", PORT = "9010", OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}" }
+env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}", ENABLE_LLM = "true" }
 
 [[participants]]
 agentbeats_id = "ironshell-ui/ironshell"
@@ -16,6 +11,5 @@ env = { DEEPSEEK_API_KEY = "${DEEPSEEK_API_KEY}", KIMI_API_KEY = "${KIMI_API_KEY
 mode = "fixed"
 test_budget = 100
 timeout_seconds = 600
-per_test_timeout_seconds = 10.0
+per_test_timeout_seconds = 10
 random_seed = 42
-run_id = 6
