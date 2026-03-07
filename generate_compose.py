@@ -63,6 +63,7 @@ services:
     image: {green_image}
     platform: linux/arm64
     container_name: green-agent
+    command: ["--host", "0.0.0.0", "--port", "{green_port}", "--card-url", "http://green-agent:{green_port}"]
     environment:{green_env}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:{green_port}/.well-known/agent-card.json || curl -sf http://localhost:{green_port}/ || curl -sf http://localhost:8000/ || curl -sf http://localhost:5000/ || exit 1"]
