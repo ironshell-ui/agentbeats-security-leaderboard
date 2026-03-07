@@ -61,9 +61,8 @@ COMPOSE_TEMPLATE = """# Auto-generated from scenario.toml
 services:
   green-agent:
     image: {green_image}
-    platform: linux/arm64
+    platform: linux/amd64
     container_name: green-agent
-    command: ["--host", "0.0.0.0", "--port", "{green_port}", "--card-url", "http://green-agent:{green_port}"]
     environment:{green_env}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:{green_port}/.well-known/agent-card.json || curl -sf http://localhost:{green_port}/ || curl -sf http://localhost:8000/ || curl -sf http://localhost:5000/ || exit 1"]
@@ -194,10 +193,12 @@ def generate_docker_compose(scenario: dict[str, Any]) -> str:
 
     all_services = ["green-agent"] + participant_names
 
+    # Inject AGENT_URL so green-agent knows its own address in the Docker network
+    green_env_dict = {**green.get("env", {}), "AGENT_URL": f"http://green-agent:{green_port}"}
     return COMPOSE_TEMPLATE.format(
         green_image=green["image"],
         green_port=green_port,
-        green_env=format_env_vars(green.get("env", {})),
+        green_env=format_env_vars(green_env_dict),
         green_depends=format_depends_on(participant_names),
         participant_services=participant_services,
         client_depends=format_depends_on(all_services)
