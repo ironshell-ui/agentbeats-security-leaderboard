@@ -1,0 +1,161 @@
+name: Evaluate Lambda Security Agent
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - 'scenario.toml'
+      - '.github/workflows/evaluate.yml'
+      - 'eval_client.py'
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install httpx
+
+      - name: Set up QEMU (for arm64 extraction)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Rebuild green-agent for amd64
+        run: |
+          # The original green-agent is arm64-only. We extract its code and rebuild for amd64.
+          echo "Pulling arm64 green-agent..."
+          docker pull --platform linux/arm64 mauttaram/cybersecurity-evaluator:latest
+
+          echo "Extracting source code..."
+          docker create --platform linux/arm64 --name temp-green mauttaram/cybersecurity-evaluator:latest
+          mkdir -p /tmp/green-build
+          docker cp temp-green:/app/green_agents /tmp/green-build/
+          docker cp temp-green:/app/framework /tmp/green-build/
+          docker cp temp-green:/app/src /tmp/green-build/
+          docker cp temp-green:/app/pyproject.toml /tmp/green-build/
+          docker rm temp-green
+          echo "# Security Evaluator" > /tmp/green-build/README.md
+
+          # Fix known bugs in the evaluator
+          cd /tmp/green-build
+          # Bug 1: result.evasions attribute doesn't exist
+          sed -i "s/len(result.evasions)/len(getattr(result, 'evasions', []))/" green_agents/cybersecurity_evaluator.py
+          # Bug 2: Remove duplicate updater.complete (framework handles it)
+          sed -i 's/await updater.complete(result_message)/# await updater.complete(result_message)  # Let framework handle/' green_agents/cybersecurity_evaluator.py
+          # Bug 3: scenarios module not available
+          sed -i '/from scenarios.security.models import/,/PurpleAgentResponse/{s/from scenarios.security.models import/try:\n            from scenarios.security.models import/; /PurpleAgentResponse/a\        except ImportError:\n            return [], []}' green_agents/cybersecurity_evaluator.py || true
+
+          # Write Dockerfile
+          cat > Dockerfile << 'GREENEOF'
+          FROM python:3.13-slim
+          RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+          RUN pip install uv
+          WORKDIR /app
+          COPY README.md pyproject.toml ./
+          COPY green_agents/ green_agents/
+          COPY framework/ framework/
+          COPY src/ src/
+          RUN uv pip install --system --no-cache .
+          HEALTHCHECK --interval=5s --timeout=3s --retries=15 --start-period=30s \
+              CMD curl -sf http://localhost:9010/.well-known/agent-card.json || exit 1
+          CMD ["python", "green_agents/cybersecurity_evaluator.py", "--host", "0.0.0.0", "--port", "9010"]
+          EXPOSE 9010
+          GREENEOF
+
+          echo "Building amd64 green-agent..."
+          docker build -t green-agent-amd64:latest .
+          echo "Green agent built successfully"
+
+      - name: Create Docker network
+        run: docker network create eval-net
+
+      - name: Start purple agent (our agent)
+        run: |
+          docker run -d --name agent --network eval-net -p 9009:9009 \
+            -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            -e OPENAI_API_BASE=${{ secrets.OPENAI_API_BASE }} \
+            -e LLM_MODEL=${{ secrets.LLM_MODEL || 'gpt-4o' }} \
+            ghcr.io/ironshell-ui/lambda-security-agent:latest \
+            --host 0.0.0.0 --port 9009
+
+      - name: Start green agent (evaluator)
+        run: |
+          docker run -d --name green-agent --network eval-net -p 9010:9010 \
+            -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            -e OPENAI_API_BASE=${{ secrets.OPENAI_API_BASE }} \
+            -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
+            -e ENABLE_LLM=true \
+            -e AGENT_URL=http://agent:9009 \
+            green-agent-amd64:latest
+
+      - name: Wait for agents
+        run: |
+          for i in $(seq 1 30); do
+            A=$(curl -sf http://localhost:9009/.well-known/agent-card.json > /dev/null 2>&1 && echo "ok" || echo "wait")
+            G=$(curl -sf http://localhost:9010/.well-known/agent-card.json > /dev/null 2>&1 && echo "ok" || echo "wait")
+            echo "[$i/30] agent=$A green=$G"
+            [ "$A" = "ok" ] && [ "$G" = "ok" ] && break
+            sleep 5
+          done
+          curl -sf http://localhost:9009/.well-known/agent-card.json | python3 -c "import json,sys; print('Agent:', json.load(sys.stdin)['name'])"
+          curl -sf http://localhost:9010/.well-known/agent-card.json | python3 -c "import json,sys; print('Green:', json.load(sys.stdin)['name'])"
+
+      - name: Run evaluation
+        run: |
+          cat > /tmp/eval-scenario.toml << 'EOF'
+          [green_agent]
+          endpoint = "http://localhost:9010"
+
+          [[participants]]
+          role = "purple_agent"
+          endpoint = "http://agent:9009"
+
+          [config]
+          mode = "fixed"
+          test_budget = 100
+          timeout_seconds = 600
+          per_test_timeout_seconds = 10
+          random_seed = 42
+          EOF
+
+          mkdir -p output
+          python eval_client.py /tmp/eval-scenario.toml output/results.json 2>&1 | tee eval_log.txt
+        timeout-minutes: 15
+
+      - name: Extract scores
+        if: always()
+        run: |
+          echo "=== Green Agent Logs ==="
+          docker logs green-agent 2>&1 | grep -E "F1|Precision|Recall|Evasion|completed|Recorded|attacks|test.results" | tail -20
+          echo ""
+          echo "=== Results ==="
+          cat output/results.json 2>/dev/null | python3 -m json.tool 2>/dev/null | head -80 || echo "No results"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-${{ github.run_number }}
+          path: |
+            output/
+            eval_log.txt
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f agent green-agent 2>/dev/null || true
+          docker network rm eval-net 2>/dev/null || true

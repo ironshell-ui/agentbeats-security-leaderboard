@@ -61,6 +61,7 @@ COMPOSE_TEMPLATE = """# Auto-generated from scenario.toml
 services:
   green-agent:
     image: {green_image}
+    platform: linux/arm64
     container_name: green-agent
     environment:{green_env}
     healthcheck:
@@ -95,10 +96,10 @@ PARTICIPANT_TEMPLATE = """  {name}:
     image: {image}
     platform: linux/amd64
     container_name: {name}
-    command: ["--host", "0.0.0.0", "--port", "{port}", "--card-url", "http://{name}:{port}"]
+    command: ["--host", "0.0.0.0", "--port", "{port}"]
     environment:{env}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:{port}/.well-known/agent-card.json"]
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:{port}/\")' || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10

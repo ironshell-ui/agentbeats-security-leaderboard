@@ -5,7 +5,7 @@ env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY
 [[participants]]
 image = "ghcr.io/ironshell-ui/lambda-security-agent:latest"
 name = "agent"
-env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", OPENAI_API_BASE = "https://api.openai.com/v1", LLM_MODEL = "gpt-4o" }
+env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", OPENAI_API_BASE = "${OPENAI_API_BASE}", LLM_MODEL = "${LLM_MODEL}" }
 
 [config]
 mode = "fixed"
