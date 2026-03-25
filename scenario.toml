@@ -3,9 +3,9 @@ image = "docker.io/mauttaram/cybersecurity-evaluator:latest"
 env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}", ENABLE_LLM = "true" }
 
 [[participants]]
-agentbeats_id = "ironshell-ui/ironshell"
+image = "ghcr.io/ironshell-ui/lambda-security-agent:latest"
 name = "agent"
-env = { DEEPSEEK_API_KEY = "${DEEPSEEK_API_KEY}", KIMI_API_KEY = "${KIMI_API_KEY}", MINIMAX_API_KEY = "${MINIMAX_API_KEY}", SERPAPI_KEY = "${SERPAPI_KEY}", OPENAI_API_KEY = "${OPENAI_API_KEY}", GOOGLE_API_KEY = "${GOOGLE_API_KEY}", OPENROUTER_API_KEY = "${OPENROUTER_API_KEY}", FEATHERLESS_API_KEY = "${FEATHERLESS_API_KEY}" }
+env = { OPENAI_API_KEY = "${OPENAI_API_KEY}", OPENAI_API_BASE = "https://api.openai.com/v1", LLM_MODEL = "gpt-4o" }
 
 [config]
 mode = "fixed"
